@@ -28,7 +28,7 @@ add_definitions(
 
 # set tested directories
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
-set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include/robotcgmres)
 
 # coverage options
 add_library(coverage_config INTERFACE)

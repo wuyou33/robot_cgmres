@@ -1,3 +1,5 @@
+#include <random>
+
 #include <gtest/gtest.h>
 #include <Eigen/Core>
 
@@ -10,7 +12,9 @@ namespace robotcgmres {
 class LinearAlgebraTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
-    dim = 50;
+    int max_dim = 100;
+    std::random_device rnd;
+    dim = rnd() % max_dim + 1;
     vec1 = memorymanager::NewVector(dim);
     vec2 = memorymanager::NewVector(dim);
     Eigen::Map<Eigen::VectorXd>(vec1, dim) = Eigen::VectorXd::Random(dim);

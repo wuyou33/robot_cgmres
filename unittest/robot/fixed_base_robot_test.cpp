@@ -1,6 +1,7 @@
-#include <gtest/gtest.h>
-#include <time.h>
 #include <string>
+#include <random>
+
+#include <gtest/gtest.h>
 #include "Eigen/Core"
 #include "pinocchio/multibody/model.hpp"
 #include "pinocchio/multibody/data.hpp"
@@ -11,7 +12,8 @@
 #include "pinocchio/algorithm/rnea-derivatives.hpp"
 
 #include "common/memory_manager.hpp"
-#include "robot/fixed_base_robot.hpp"
+#include "robot/point_contact.hpp"
+#include "robot/robot.hpp"
 
 
 namespace robotcgmres {
@@ -20,6 +22,7 @@ class FixedBaseRobotTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
     srand((unsigned int) time(0));
+    std::random_device rnd;
     urdf_file_name_ = "../../../examples/iiwa14/iiwa14.urdf";
     pinocchio::urdf::buildModel(urdf_file_name_, model_);
     data_ = pinocchio::Data(model_);
@@ -47,14 +50,15 @@ protected:
 
 
 TEST_F(FixedBaseRobotTest, dim) {
-  FixedBaseRobot robot(urdf_file_name_);
+  Robot robot(urdf_file_name_);
   EXPECT_EQ(robot.dimq(), dimq_);
   EXPECT_EQ(robot.dimv(), dimq_);
   EXPECT_EQ(robot.dimtau(), dimq_);
 }
 
-TEST_F(FixedBaseRobotTest, RNEA) {
-  FixedBaseRobot robot(urdf_file_name_);
+
+TEST_F(FixedBaseRobotTest, RNEAWithoutFext) {
+  Robot robot(urdf_file_name_);
   double *tau = memorymanager::NewVector(dimq_);
   robot.RNEA(q_, v_, a_, tau);
   Eigen::VectorXd tau_ref = pinocchio::rnea(
@@ -66,8 +70,9 @@ TEST_F(FixedBaseRobotTest, RNEA) {
   memorymanager::DeleteVector(tau);
 }
 
-TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVec) {
-  FixedBaseRobot robot(urdf_file_name_);
+
+TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVecWithoutFext) {
+  Robot robot(urdf_file_name_);
   double *vec = memorymanager::NewVector(dimq_);
   Eigen::Map<Eigen::VectorXd>(vec, dimq_) = Eigen::VectorXd::Random(dimq_);
   double *dRNEA_dq_dot_vec = memorymanager::NewVector(dimq_);
@@ -99,8 +104,9 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVec) {
   memorymanager::DeleteVector(vec);
 }
 
+
 TEST_F(FixedBaseRobotTest, CRBADotVec) {
-  FixedBaseRobot robot(urdf_file_name_);
+  Robot robot(urdf_file_name_);
   double *vec = memorymanager::NewVector(dimq_);
   Eigen::Map<Eigen::VectorXd>(vec, dimq_) = Eigen::VectorXd::Random(dimq_);
   double *result = memorymanager::NewVector(dimq_);
@@ -113,6 +119,25 @@ TEST_F(FixedBaseRobotTest, CRBADotVec) {
   EXPECT_TRUE(result_ref.isApprox(Eigen::Map<Eigen::VectorXd>(result, dimq_)));
   memorymanager::DeleteVector(vec);
   memorymanager::DeleteVector(result);
+}
+
+
+TEST_F(FixedBaseRobotTest, numContacts) {
+  Robot robot(urdf_file_name_);
+  int num_contact = 5;
+  EXPECT_EQ(robot.dimf(), 0);
+  for (int i=0; i<num_contact; ++i) {
+    robot.addPointContact(2*i+2, 0, 0);
+    EXPECT_EQ(robot.dimf(), (i+1)*3);
+  }
+  for (int i=0; i<num_contact; ++i) {
+    robot.removePointContact(2*i+1);
+    EXPECT_EQ(robot.dimf(), num_contact*3);
+  }
+  for (int i=0; i<num_contact; ++i) {
+    robot.removePointContact(2*i+2);
+    EXPECT_EQ(robot.dimf(), (num_contact-i-1)*3);
+  }
 }
 
 } // namespace robot_cgmres

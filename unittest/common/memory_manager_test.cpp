@@ -1,3 +1,5 @@
+#include <random>
+
 #include <gtest/gtest.h>
 
 #include "common/memory_manager.hpp"
@@ -9,7 +11,9 @@ namespace memorymanager {
 class MemoryManagerTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
-    dim = 50;
+    int max_dim = 100;
+    std::random_device rnd;
+    dim = rnd() % max_dim + 1;
   }
 
   int dim;

@@ -1,5 +1,5 @@
-#ifndef MEMORY_MANAGER_HPP_
-#define MEMORY_MANAGER_HPP_
+#ifndef ROBOTCGMRES_MEMORY_MANAGER_HPP_
+#define ROBOTCGMRES_MEMORY_MANAGER_HPP_
 
 
 // Functions supporting linear algebra. 
@@ -25,4 +25,4 @@ void DeleteMatrix(double** mat);
 } // namespace robotcgmres
 
 
-#endif // MEMORY_MANAGER_HPP_
+#endif // ROBOTCGMRES_MEMORY_MANAGER_HPP_

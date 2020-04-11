@@ -18,6 +18,8 @@ addons:
       - lcov
 
 install:
+  - sudo apt install build-essential
+  - sudo apt install pkg-config
   - source ci/install_lcov.sh
   - source ci/install_pinocchio.sh
   - sudo apt install libeigen3-dev

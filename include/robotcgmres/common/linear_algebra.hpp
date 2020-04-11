@@ -1,5 +1,5 @@
-#ifndef LINEAR_ALGEBRA_HPP_
-#define LINEAR_ALGEBRA_HPP_
+#ifndef ROBOTCGMRES_LINEAR_ALGEBRA_HPP_
+#define ROBOTCGMRES_LINEAR_ALGEBRA_HPP_
 
 #include <cmath>
 
@@ -17,4 +17,4 @@ double SquaredNorm(const int dim, const double *vec);
 } // namespace robotcgmres
 
 
-#endif // LINEAR_ALGEBRA_HPP_
+#endif // ROBOTCGMRES_LINEAR_ALGEBRA_HPP_
