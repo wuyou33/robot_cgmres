@@ -32,7 +32,7 @@ protected:
     njoints_ = model_.njoints;
     contact_frame_id_ = 2 + (int)((rnd()%(model_.nframes-2)) / 2) * 2;
     q_ = pinocchio::randomConfiguration(model_, -Eigen::VectorXd::Ones(dimq_), 
-                                         Eigen::VectorXd::Ones(dimq_));
+                                        Eigen::VectorXd::Ones(dimq_));
     v_ = Eigen::VectorXd::Random(dimv_);
     a_ = Eigen::VectorXd::Random(dimv_);
     baumgarte_alpha_ = Eigen::VectorXd::Random(2)[1];

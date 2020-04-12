@@ -24,7 +24,7 @@ public:
 
   int dimtau() const;
 
-  int dimtau() const;
+  int dim_solution() const;
 
 private:
   Robot *robot_;

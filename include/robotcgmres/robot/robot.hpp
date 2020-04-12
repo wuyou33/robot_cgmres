@@ -28,6 +28,10 @@ public:
   // Destructor. 
   ~Robot();
 
+  // Updates the kinematics of the robot. The frame placements and the Jacobians
+  // are calculated.
+  void updateKinematics(const double* q);
+
   // Sets the stack of the generalized forces represented in world frame.
   // The array is converted into joint forces.
   void setFext(const double* fext);
