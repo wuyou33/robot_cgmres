@@ -6,21 +6,8 @@
 
 class CostFunctionInterface {
 public:
-  CostFunctionInterface();
+  CostFunctionInterface(const Robot* robot_ptr);
   ~CostFunctionInterface();
-
-  virtual void lq(const double t, const double* q, const double* v, 
-                  const double* a, const double* u, double* lq);
-
-  virtual void lv(const double t, const double* q, const double* v, 
-                  const double* a, const double* u, double* lv);
-
-  virtual void la(const double t, const double* q, const double* v, 
-                  const double* a, const double* u, double* la);
-
-  virtual void lu(const double t, const double* q, const double* v, 
-                  const double* a, const double* u, double* lu);
-
 
   virtual void lq(const double t, const double* q, const double* v, 
                   const double* a, const double* u, const double* f, 

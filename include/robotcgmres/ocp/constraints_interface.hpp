@@ -6,24 +6,8 @@
 
 class ConstraintsInterface {
 public:
-  ConstraintsInterface();
+  ConstraintsInterface(const Robot* robot_ptr);
   ~ConstraintsInterface();
-
-  virtual void C(const double t, const double* q, const double* v, 
-                 const double* a, const double* u, double* C);
-
-  virtual void addCq(const double t, const double* q, const double* v, 
-                     const double* a, const double* u, double* lq);
-
-  virtual void addCv(const double t, const double* q, const double* v, 
-                     const double* a, const double* u, double* lv);
-
-  virtual void addCa(const double t, const double* q, const double* v, 
-                     const double* a, const double* u, double* la);
-
-  virtual void addCu(const double t, const double* q, const double* v, 
-                     const double* a, const double* u, double* lu);
-
 
   virtual void C(const double t, const double* q, const double* v, 
                  const double* a, const double* u, const double* f, double* C);
@@ -48,8 +32,7 @@ public:
                      const double* a, const double* u, const double* f, 
                      double* lu);
 
-
-  virtual int dimC() const;
+  virtual int dim_constraints() const;
 
 private:
 

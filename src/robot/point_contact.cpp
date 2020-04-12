@@ -129,8 +129,8 @@ void PointContact::contactJacobian(const pinocchio::Model& model,
                                    const int row_begin, 
                                    const int column_begin) {
   pinocchio::getFrameJacobian(model, data, contact_frame_id_, pinocchio::LOCAL, 
-                              J_contacts.block(row_begin, column_begin, 6, 
-                                               dimv_));
+                              J_contacts.block(row_begin, column_begin, 
+                                               6, dimv_));
 }
 
 void PointContact::baumgarteResidual(const pinocchio::Model& model, 

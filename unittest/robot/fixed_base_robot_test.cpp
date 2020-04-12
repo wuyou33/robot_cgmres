@@ -59,7 +59,59 @@ TEST_F(FixedBaseRobotTest, dim) {
   Robot robot(urdf_file_name_);
   EXPECT_EQ(robot.dimq(), dimq_);
   EXPECT_EQ(robot.dimv(), dimq_);
-  EXPECT_EQ(robot.dimtau(), dimq_);
+  EXPECT_EQ(robot.dimf(), 0);
+}
+
+
+TEST_F(FixedBaseRobotTest, baumgarteResidualAndDerivatives) {
+  Robot robot(urdf_file_name_);
+  robot.addPointContact(contact_frame_id_, baumgarte_alpha_, baumgarte_beta_);
+  double *residual = memorymanager::NewVector(3*1);
+  robot.updateKinematics(q_, v_, a_);
+  robot.baumgarteResidual(residual);
+  PointContact contact_ref(contact_frame_id_, baumgarte_alpha_, 
+                           baumgarte_beta_);
+  contact_ref.loadPinocchioModel(model_);
+  pinocchio::forwardKinematics(model_, data_, 
+                               Eigen::Map<const Eigen::VectorXd>(q_, dimq_),
+                               Eigen::Map<const Eigen::VectorXd>(v_, dimq_),
+                               Eigen::Map<const Eigen::VectorXd>(a_, dimq_));
+  pinocchio::computeForwardKinematicsDerivatives(
+      model_, data_, Eigen::Map<const Eigen::VectorXd>(q_, dimq_), 
+      Eigen::Map<const Eigen::VectorXd>(v_, dimq_), 
+      Eigen::Map<const Eigen::VectorXd>(a_, dimq_));
+  pinocchio::updateFramePlacements(model_, data_);
+  contact_ref.resetContactPointByCurrentState(data_);
+  double *residual_ref = memorymanager::NewVector(3*1);
+  contact_ref.baumgarteResidual(model_, data_, residual_ref);
+  EXPECT_TRUE(Eigen::Map<Eigen::Vector3d>(residual).isApprox(Eigen::Map<Eigen::Vector3d>(residual_ref)));
+  memorymanager::DeleteVector(residual);
+  memorymanager::DeleteVector(residual_ref);
+  double *dBaum_dq_dot_vec = memorymanager::NewVector(dimq_);
+  double *dBaum_dv_dot_vec = memorymanager::NewVector(dimq_);
+  double *dBaum_da_dot_vec = memorymanager::NewVector(dimq_);
+  double *vec = memorymanager::NewVector(3*1);
+  Eigen::Map<Eigen::VectorXd>(vec, 3) = Eigen::VectorXd::Random(3*1);
+  robot.baumgarteDerivativesDotVec(vec, dBaum_dq_dot_vec, dBaum_dv_dot_vec, 
+                                   dBaum_da_dot_vec);
+  Eigen::MatrixXd dBaum_dq, dBaum_dv, dBaum_da;
+  dBaum_dq = Eigen::MatrixXd::Zero(3*1, dimq_);
+  dBaum_dv = Eigen::MatrixXd::Zero(3*1, dimq_);
+  dBaum_da = Eigen::MatrixXd::Zero(3*1, dimq_);
+  contact_ref.baumgarteDerivatives(model_, data_, dBaum_dq, dBaum_dv, dBaum_da, 0, 0);
+  Eigen::VectorXd dBaum_dq_dot_vec_ref
+      = dBaum_dq.transpose() * Eigen::Map<const Eigen::VectorXd>(vec, 3*1);
+  Eigen::VectorXd dBaum_dv_dot_vec_ref
+      = dBaum_dv.transpose() * Eigen::Map<const Eigen::VectorXd>(vec, 3*1);
+  Eigen::VectorXd dBaum_da_dot_vec_ref
+      = dBaum_da.transpose() * Eigen::Map<const Eigen::VectorXd>(vec, 3*1);
+  EXPECT_TRUE(dBaum_dq_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dBaum_dq_dot_vec, dimq_)));
+  EXPECT_TRUE(dBaum_dv_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dBaum_dv_dot_vec, dimq_)));
+  EXPECT_TRUE(dBaum_da_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dBaum_da_dot_vec, dimq_)));
+  memorymanager::DeleteVector(dBaum_dq_dot_vec);
+  memorymanager::DeleteVector(dBaum_dv_dot_vec);
+  memorymanager::DeleteVector(dBaum_da_dot_vec);
+  memorymanager::DeleteVector(vec);
 }
 
 
@@ -84,8 +136,8 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVecWithoutFext) {
   double *dRNEA_dq_dot_vec = memorymanager::NewVector(dimq_);
   double *dRNEA_dv_dot_vec = memorymanager::NewVector(dimq_);
   double *dRNEA_da_dot_vec = memorymanager::NewVector(dimq_);
-  robot.RNEADerivativesTransDotVector(q_, v_, a_, vec, dRNEA_dq_dot_vec, 
-                                      dRNEA_dv_dot_vec, dRNEA_da_dot_vec);
+  robot.RNEADerivativesTransDotVec(q_, v_, a_, vec, dRNEA_dq_dot_vec, 
+                                   dRNEA_dv_dot_vec, dRNEA_da_dot_vec);
   pinocchio::computeRNEADerivatives(
       model_, data_,
       Eigen::Map<const Eigen::VectorXd>(q_, dimq_), 
@@ -111,12 +163,12 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVecWithoutFext) {
 }
 
 
-TEST_F(FixedBaseRobotTest, CRBADotVec) {
+TEST_F(FixedBaseRobotTest, RNEADerivativesWithAccTransDotVecWithoutFext) {
   Robot robot(urdf_file_name_);
   double *vec = memorymanager::NewVector(dimq_);
   Eigen::Map<Eigen::VectorXd>(vec, dimq_) = Eigen::VectorXd::Random(dimq_);
   double *result = memorymanager::NewVector(dimq_);
-  robot.CRBADotVec(q_, vec, result);
+  robot.RNEADerivativesTransDotVec(q_, vec, result);
   pinocchio::crba(model_, data_, Eigen::Map<const Eigen::VectorXd>(q_, dimq_));
   data_.M.triangularView<Eigen::StrictlyLower>() 
       = data_.M.transpose().triangularView<Eigen::StrictlyLower>();
@@ -175,26 +227,26 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVecWithFext) {
   double *fext = memorymanager::NewVector(3*1);
   Eigen::Map<Eigen::VectorXd>(fext, 3*1) = Eigen::VectorXd::Random(3*1);
   robot.addPointContact(contact_frame_id_, baumgarte_alpha_, baumgarte_beta_);
-  robot.updateKinematics(q_);
-  robot.RNEADerivativesTransDotVector(q_, v_, a_, vec, dRNEA_dq_dot_vec0, 
-                                      dRNEA_dv_dot_vec0, dRNEA_da_dot_vec0);
-  robot.RNEADerivativesTransDotVector(q_, v_, a_, vec, dRNEA_dq_dot_vec, 
-                                      dRNEA_dv_dot_vec, dRNEA_da_dot_vec, 
-                                      dRNEA_dfext_dot_vec);
+  robot.updateKinematics(q_, v_, a_);
+  robot.RNEADerivativesTransDotVec(q_, v_, a_, vec, dRNEA_dq_dot_vec0, 
+                                   dRNEA_dv_dot_vec0, dRNEA_da_dot_vec0);
+  robot.RNEADerivativesTransDotVec(q_, v_, a_, vec, dRNEA_dq_dot_vec, 
+                                   dRNEA_dv_dot_vec, dRNEA_da_dot_vec, 
+                                   dRNEA_dfext_dot_vec);
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(dRNEA_dq_dot_vec, dimq_).isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_dq_dot_vec0, dimq_)));
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(dRNEA_dv_dot_vec, dimq_).isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_dv_dot_vec0, dimq_)));
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(dRNEA_da_dot_vec, dimq_).isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_da_dot_vec0, dimq_)));
   robot.setFext(fext);
-  robot.RNEADerivativesTransDotVector(q_, v_, a_, vec, dRNEA_dq_dot_vec, 
-                                      dRNEA_dv_dot_vec, dRNEA_da_dot_vec, 
-                                      dRNEA_dfext_dot_vec);
+  robot.RNEADerivativesTransDotVec(q_, v_, a_, vec, dRNEA_dq_dot_vec, 
+                                   dRNEA_dv_dot_vec, dRNEA_da_dot_vec, 
+                                   dRNEA_dfext_dot_vec);
   pinocchio::container::aligned_vector<pinocchio::Force> fjoint 
       = pinocchio::container::aligned_vector<pinocchio::Force>(
                  model_.joints.size(), pinocchio::Force::Zero());
   PointContact contact_ref(contact_frame_id_, baumgarte_alpha_, 
                            baumgarte_beta_);
   contact_ref.loadPinocchioModel(model_);
-  robot.updateKinematics(q_);
+  robot.updateKinematics(q_, v_, a_);
   contact_ref.contactForceToJointForce(fext, fjoint);
   pinocchio::computeRNEADerivatives(
       model_, data_,
@@ -224,7 +276,6 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVecWithFext) {
   EXPECT_TRUE(dRNEA_dv_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_dv_dot_vec, dimq_)));
   EXPECT_TRUE(dRNEA_da_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_da_dot_vec, dimq_)));
   EXPECT_TRUE(dRNEA_dfext_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_dfext_dot_vec, 3)));
-
   memorymanager::DeleteVector(fext);
   memorymanager::DeleteVector(dRNEA_dq_dot_vec0);
   memorymanager::DeleteVector(dRNEA_dv_dot_vec0);
@@ -234,6 +285,47 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesTransDotVecWithFext) {
   memorymanager::DeleteVector(dRNEA_da_dot_vec);
   memorymanager::DeleteVector(dRNEA_dfext_dot_vec);
   memorymanager::DeleteVector(vec);
+}
+
+
+TEST_F(FixedBaseRobotTest, RNEADerivativesWithAccAndFextTransDotVecWithFext) {
+  Robot robot(urdf_file_name_);
+  double *vec = memorymanager::NewVector(dimq_);
+  Eigen::Map<Eigen::VectorXd>(vec, dimq_) = Eigen::VectorXd::Random(dimq_);
+  robot.addPointContact(contact_frame_id_, baumgarte_alpha_, baumgarte_beta_);
+  robot.updateKinematics(q_, v_, a_);
+  double *dRNEA_da_dot_vec = memorymanager::NewVector(dimq_);
+  double *dRNEA_dfext_dot_vec = memorymanager::NewVector(3*1);
+  robot.RNEADerivativesTransDotVec(q_, vec, dRNEA_da_dot_vec, 
+                                   dRNEA_dfext_dot_vec);
+  pinocchio::forwardKinematics(model_, data_, 
+                               Eigen::Map<const Eigen::VectorXd>(q_, dimq_));
+  pinocchio::computeJointJacobians(model_, data_, 
+                                   Eigen::Map<const Eigen::VectorXd>(q_, dimq_));
+  pinocchio::updateFramePlacements(model_, data_);
+  pinocchio::crba(model_, data_, Eigen::Map<const Eigen::VectorXd>(q_, dimq_));
+  data_.M.triangularView<Eigen::StrictlyLower>() 
+      = data_.M.transpose().triangularView<Eigen::StrictlyLower>();
+  Eigen::VectorXd dRNEA_da_dot_vec_ref
+      = data_.M * Eigen::Map<const Eigen::VectorXd>(vec, dimq_);
+  EXPECT_TRUE(dRNEA_da_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_da_dot_vec, dimq_)));
+  PointContact contact_ref(contact_frame_id_, baumgarte_alpha_, 
+                           baumgarte_beta_);
+  contact_ref.loadPinocchioModel(model_);
+  Eigen::MatrixXd dtau_dfext = Eigen::MatrixXd::Zero(6, dimq_);
+  contact_ref.contactJacobian(model_, data_, dtau_dfext, 0, 0);
+  Eigen::VectorXd dRNEA_dfext_dot_vec_ref 
+      = dtau_dfext.topRows(3) * Eigen::Map<const Eigen::VectorXd>(vec, dimq_);
+  EXPECT_TRUE(dRNEA_dfext_dot_vec_ref.isApprox(Eigen::Map<Eigen::VectorXd>(dRNEA_dfext_dot_vec, 3*1)));
+  memorymanager::DeleteVector(dRNEA_da_dot_vec);
+  memorymanager::DeleteVector(dRNEA_dfext_dot_vec);
+  memorymanager::DeleteVector(vec);
+}
+
+
+TEST_F(FixedBaseRobotTest, passive_torques) {
+  Robot robot(urdf_file_name_);
+  EXPECT_TRUE(robot.passive_torques().empty());
 }
 
 

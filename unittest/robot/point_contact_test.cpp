@@ -204,8 +204,8 @@ TEST_F(PointContactTest, contactJacobianAndItsBlock) {
 
   Eigen::MatrixXd J_contact_block = Eigen::MatrixXd::Zero(2*6, 2*dimv_);
   Eigen::MatrixXd J_contact_block_ref = Eigen::MatrixXd::Zero(2*6, 2*dimv_);
-  const int row_begin = rand() % dimv_;
-  const int column_begin = rand() % 6;
+  const int row_begin = rand() % 6;
+  const int column_begin = rand() % dimv_;
   contact.contactJacobian(model_, data_, J_contact_block, row_begin, 
                           column_begin);
   pinocchio::getFrameJacobian(model_, data_, contact_frame_id_, 
@@ -292,8 +292,8 @@ TEST_F(PointContactTest, baumgarteDerivativesBlock) {
   Eigen::MatrixXd baum_partial_dq = Eigen::MatrixXd::Zero(2*3, 2*dimv_);
   Eigen::MatrixXd baum_partial_dv = Eigen::MatrixXd::Zero(2*3, 2*dimv_);
   Eigen::MatrixXd baum_partial_da = Eigen::MatrixXd::Zero(2*3, 2*dimv_);
-  const int row_begin = rand() % dimv_;
-  const int column_begin = rand() % 3;
+  const int row_begin = rand() % 3;
+  const int column_begin = rand() % dimv_;
   contact.baumgarteDerivatives(model_, data_, baum_partial_dq, baum_partial_dv, 
                                baum_partial_da, row_begin, 
                                column_begin);
