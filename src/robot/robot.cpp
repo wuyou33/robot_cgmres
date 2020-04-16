@@ -8,7 +8,7 @@ Robot::Robot(const std::string& urdf_file_name)
     data_(model_),
     contacts_(),
     fjoint_(),
-    passive_torques_(),
+    joint_types_(),
     dtau_dfext_(),
     dBaum_dq_(),
     dBaum_dv_(),
@@ -23,18 +23,9 @@ Robot::Robot(const std::string& urdf_file_name)
                  model_.joints.size(), pinocchio::Force::Zero());
   dimq_ = model_.nq;
   dimv_ = model_.nv;
-  // Set passive joints.
-  int total_dim_torques = 0;
+  // Set joint types.
   for (const auto& joint : model_.joints) {
-    if (joint.shortname() == "JointModelFreeFlyer") {
-      for (int j=0; j<6; ++j) {
-        passive_torques_.push_back(total_dim_torques+j);
-      }
-      total_dim_torques += 6;
-    }
-    else {
-      total_dim_torques += 1;
-    }
+    joint_types_.push_back(joint.shortname());
   }
 }
 
@@ -226,8 +217,8 @@ int Robot::dimf() const {
   return dimf_;
 }
 
-const std::vector<int>& Robot::passive_torques() const {
-  return passive_torques_;
+const std::vector<std::string>& Robot::joint_types() const {
+  return joint_types_;
 }
 
 } // namespace robotcgmres

@@ -1,3 +1,4 @@
+#include <vector>
 #include <string>
 #include <random>
 
@@ -323,9 +324,12 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesWithAccAndFextTransDotVecWithFext) {
 }
 
 
-TEST_F(FixedBaseRobotTest, passive_torques) {
+TEST_F(FixedBaseRobotTest, joint_types) {
   Robot robot(urdf_file_name_);
-  EXPECT_TRUE(robot.passive_torques().empty());
+  EXPECT_EQ(robot.joint_types().size(), model_.njoints);
+  for (int i=0; i<model_.njoints; ++i) {
+    EXPECT_TRUE(robot.joint_types()[i]==model_.joints[i].shortname());
+  }
 }
 
 

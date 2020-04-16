@@ -5,7 +5,7 @@ namespace robotcgmres {
 
 ZeroHorizonOCP::ZeroHorizonOCP(const Robot* robot_ptr) 
   : robot_(robot_ptr),
-    passive_joint_constraint_(robot_ptr),
+    passive_joints_(robot_ptr),
     cost_function_(robot_ptr),
     constraints_(robot_ptr),
     dimq_(robot_ptr->dimq()),
@@ -38,61 +38,106 @@ ZeroHorizonOCP::~ZeroHorizonOCP() {
 }
 
 void ZeroHorizonOCP::computeOptimalityResidual(const double t, const double* q, 
-                                               const double* v, 
-                                               const double* solution,
+                                               const double* v, const double* a, 
+                                               const double* mutipliers, 
                                                double* optimality_residual) {
-  if (dimf_ > 0) {
-    robot_->setFext(&(solution[dimv_]));
-    robot_->RNEA(q, v, solution, &(solution[dimv_]), u_);
-  } 
-  else {
-    robot_->RNEA(q, v, solution, u_);
+  // Compute the generalized torque for fully actuated robot u_
+  robot_->RNEA(q, v, a, u_);
+  // Compute hu and store it in beta_
+  cost_function_.lu(t, q, v, a, u_, beta_);
+  passive_joints_.addPassiveConstraintsDerivativeDotVec(mutipliers, beta_);
+  constraints_.addCuDotVec(t, q, v, a, u_, &(mutipliers[dim_passive_]), beta_);
+  // Residuals with respect to the generalized acceleration
+  robot_->RNEADerivativesTransDotVec(q, beta_, dRNEA_da_dot_beta_);
+  cost_function_.la(t, q, v, a, u_, optimality_residual);
+  constraints_.addCaDotVec(t, q, v, a, u_, &(mutipliers[dim_passive_]), 
+                           optimality_residual);
+  cost_function_.phiv(t, q, v, gamma_);
+  for (int i=0; i<dimv_; ++i) {
+    optimality_residual[i] += gamma_[i] + dRNEA_da_dot_beta_[i];
   }
+  // Compute the residual of the passive joints constraints.
+  passive_joints_.passiveConstraintsResidual(u_, &(optimality_residual[dimv_]));
+  // Compute the residual of the equality constraints.
+  constraints_.C(t, q, v, a, u_, &(optimality_residual[dimv_+dim_passive_]));
+}
 
-  cost_function_.lu(t, q, v, solution, u_, &(solution[dimv_]), beta_);
-  constraints_.addCu(t, q, v, solution, u_, &(solution[dimv_]),
-                     &(solution[dimv_+2*dimf_]), beta_);
-
-  if (dimf_ > 0) {
-    robot_->updateKinematics(q, v, solution);
-    robot_->RNEADerivativesTransDotVector(q, beta_, dRNEA_da_dot_beta_, 
-                                          dRNEA_dfext_dot_beta_);
-    robot_->baumgarteResidual(q, v, solution, 
-                              &(optimality_residual[dimv_+dimf_]));
-    robot_->baumgarteDerivativesDotVec(q, v, solution, &(solution[dimv_+dimf_]), 
-                                       dBaum_dq_dot_alpha_, dBaum_dv_dot_alpha_,
-                                       dBaum_da_dot_alpha_);
-    cost_function_.la(t, q, v, solution, u_, &(solution[dimv_]), 
-                      optimality_residual);
-    constraints_.addCa(t, q, v, solution, u_, &(solution[dimv_]), 
-                      &(solution[dimv_+2*dimf_]), optimality_residual);
-    cost_function_.phiv(t, q, v, gamma_);
-    for (int i=0; i<dimv_; ++i) {
-      optimality_residual[i] += gamma_[i] + dRNEA_da_dot_beta_[i] 
-                                + dBaum_da_dot_alpha_[i];
-  } 
-  else {
-    robot_->RNEADerivativeTransDotVector(q, beta_, dRNEA_da_dot_beta_);
-    cost_function_.la(t, q, v, solution, u_, &(solution[dimv_]), 
-                      optimality_residual);
-    constraints_.addCa(t, q, v, solution, u_, &(solution[dimv_]), 
-                      &(solution[dimv_+2*dimf_]), optimality_residual);
-    cost_function_.phiv(t, q, v, gamma_);
-    for (int i=0; i<dimv_; ++i) {
-      optimality_residual[i] += gamma_[i] + dRNEA_da_dot_beta_[i];
-    }
+void ZeroHorizonOCP::computeOptimalityResidual(const double t, const double* q, 
+                                               const double* v, const double* a, 
+                                               const double* fext, 
+                                               const double* mutipliers, 
+                                               double* optimality_residual) {
+  // Compute the generalized torque u_
+  robot_->setFext(fext);
+  robot_->RNEA(q, v, a, fext, u_);
+  // Compute hu and store in beta_
+  cost_function_.lu(t, q, v, a, u_, fext, beta_);
+  passive_joints_.addPassiveConstraintsDerivativeDotVec(mutipliers, beta_);
+  constraints_.addCuDotVec(t, q, v, a, u_, fext, 
+                           &(mutipliers[dim_passive_+dimf_]), beta_);
+  // Residuals of acceleration, fext, and contact constraints.
+  robot_->updateKinematics(q, v, a);
+  robot_->RNEADerivativesTransDotVec(q, beta_, dRNEA_da_dot_beta_, 
+                                     dRNEA_dfext_dot_beta_);
+  cost_function_.la(t, q, v, a, u_, fext, optimality_residual);
+  constraints_.addCaDotVec(t, q, v, a, u_, fext, 
+                           &(mutipliers[dim_passive_+dimf_]), 
+                           optimality_residual);
+  robot_->baumgarteDerivativesDotVec(&(mutipliers[dim_passive_]),
+                                     dBaum_dq_dot_alpha_, dBaum_dv_dot_alpha_,
+                                     dBaum_da_dot_alpha_);
+  cost_function_.phiv(t, q, v, gamma_);
+  for (int i=0; i<dimv_; ++i) {
+    optimality_residual[i] += gamma_[i] + dRNEA_da_dot_beta_[i] 
+                              + dBaum_da_dot_alpha_[i];
   }
-
-  computeLfCf(time, state_vec, &(state_vec[dim_configuration_]), solution_vec, 
-              &(solution_vec[dim_velocity_]), u_vec_,
-              &(solution_vec[dim_velocity_+2*dim_fext_]), 
-              &(optimality_residual[dim_velocity_]));
-  for (int i=0; i<dim_fext_; ++i) {
-    optimality_residual[dim_velocity_+i] += dRNEA_dfext_dot_beta_[i];
+  cost_function_.lf(t, q, v, a, u_, fext, &(optimality_residual[dimv_]));
+  constraints_.addCfDotVec(t, q, v, a, u_, fext,  
+                           &(mutipliers[dim_passive_+dimf_])
+                           &(optimality_residual[dimv_]));
+  for (int i=0; i<dimv_; ++i) {
+    optimality_residual[dimv_+i] += dRNEA_dfext_dot_beta_[i];
   }
+  // Compute the residual of the passive joints constraints.
+  passive_joints_.passiveConstraintsResidual(
+      u_, &(optimality_residual[dimv_+dimf_]));
+  // Compute the residual of the contact.
+  robot_->baumgarteResidual(&(optimality_residual[dimv_+dimf_+dim_passive_]));
+  // Compute the residual of the equality constraints.
+  constraints_.C(t, q, v, a, u_, fext, 
+                 &(optimality_residual[dimv_+2*dimf_+dim_passive_]));
+}
 
-  constraints_.C(t, q, v, solution, u_, &(solution[dimv_]), 
-                 &(solution[dimv_+2*dimf_]));
+void ZeroHorizonOCP::integrateSolution(const double* solution_update, 
+                                       const double integration_length, 
+                                       double* solution) {
+  for (int i=0; i<dim_solution_; ++i) {
+    solution[i] += integration_length * solution_update[i];
+  }
+}
+
+int ZeroHorizonOCP::dimq() const {
+  return dimq_;
+}
+
+int ZeroHorizonOCP::dimv() const {
+  return dimv_;
+}
+
+int ZeroHorizonOCP::dimf() const {
+  return dimf_;
+}
+
+int ZeroHorizonOCP::dim_passive() const {
+  return dim_passive_;
+}
+
+int ZeroHorizonOCP::dim_constraints() const {
+  return dim_constraints_;
+}
+
+int ZeroHorizonOCP::dim_solution() const {
+  return dim_solution_;
 }
 
 } // namespace robotcgmres

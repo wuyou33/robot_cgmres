@@ -10,6 +10,7 @@ namespace robotcgmres {
 // T_f_ * (1.0-std::exp(-alpha_*(time-initial_time_))).
 class TimeVaryingSmoothHorizon {
 public:
+
   // Sets the parameters of the horizon.
   // The length of the horizon is set by 
   // T_f_ * (1.0-std::exp(-alpha_*(time-initial_time_))).
@@ -33,6 +34,8 @@ public:
 
   // Prohibits copy.
   TimeVaryingSmoothHorizon(const TimeVaryingSmoothHorizon&) = delete;
+
+  // Prohibits copy operator.
   TimeVaryingSmoothHorizon& operator=(const TimeVaryingSmoothHorizon&) = delete;
 
 private:
