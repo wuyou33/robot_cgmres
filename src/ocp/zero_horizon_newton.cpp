@@ -39,8 +39,6 @@ void ZeroHorizonNewton::solveZeroHorizonOCP(const double t, const double* q,
                                             const double* v, double* solution) {
   for (int i=0; i<newton_.dim_solution(); ++i) {
     solution[i] = initial_guess_solution_[i];
-    std::cout << "init_guess[" << i << "] = " << initial_guess_solution_[i] << std::endl;
-    std::cout << "solution[" << i << "] = " << solution[i] << std::endl;
   }
   double error = newton_.residualNorm(t, q, v, solution);
   int num_newton = 0;

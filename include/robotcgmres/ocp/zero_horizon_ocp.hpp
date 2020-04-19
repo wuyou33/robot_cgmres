@@ -95,15 +95,20 @@ private:
   //   q: Generalized configuration. The size must be dimq.
   //   v: Generalized velocity. The size must be dimv.
   //   a: Generalized acceleration. The size must be dimv.
-  //   nu: The Lagrange multipliers with respect to the passive joint 
+  //   mul_passive: The Lagrange multiplier with respect to the passive joint 
   //      constraints. The size must be dim_passive.
-  //   mu: The Lagrange multipliers with respect to the user-defined 
+  //   mul_constriants: The Lagrange multiplier with respect to the user-defined 
   //      equality constraints. The size must be dim_constraints.
-  //   optimality_residual: The residual of the otimality condition. The size
-  //      must be dimv+dim_passive+dim_constraints.
+  //   res_ha: The optimality residual with respect to the generalized 
+  //      acceleration. The size must be dimv().
+  //   res_passive: The optimality residual with respect to the passive
+  //      constraints. The size must be dim_passive().
+  //   res_constraints: The optimality residual with respect to the passive
+  //      constraints. The size must be dim_constraints().
   inline void computeOptimalityResidualWithoutContacts(
       const double t, const double* q, const double* v, const double* a, 
-      const double* nu, const double* mu, double* optimality_residual);
+      const double* mul_passive, const double* mul_constraints, double* res_ha, 
+      double* res_passive, double* res_constraints);
 
   // Computes optimality residual. If there are contacts, the solution of 
   // the OCP is given by [a, fext, multipliers], whose dimensions are
@@ -112,29 +117,38 @@ private:
   // dimv+2*dimf_+dim_passive+dim_constraints.
   // Argments: 
   //   t: Time.
-  //   q: Generalized configuration. The size must be dimq.
-  //   v: Generalized velocity. The size must be dimv.
-  //   a: Generalized acceleration. The size must be dimv.
-  //   fext: Generalized acceleration. The size must be dimf.
-  //   alpha: The Lagrange multipliers with respect to the contact constraints. 
-  //      The size must be dim_contacts.
-  //   nu: The Lagrange multipliers with respect to the passive joint 
-  //      constraints. The size must be dim_passive.
-  //   mu: The Lagrange multipliers with respect to the user-defined 
-  //      equality constraints. The size must be dim_constraints.
-  //   optimality_residual: The residual of the otimality condition. The size
-  //      must be dimv+2*dimf+dim_passive+dim_constraints.
+  //   q: Generalized configuration. The size must be dimq().
+  //   v: Generalized velocity. The size must be dimv().
+  //   a: Generalized acceleration. The size must be dimv().
+  //   fext: Contact forces. The size must be dimf().
+  //   mul_passive: The Lagrange multiplier with respect to the passive joint 
+  //      constraints. The size must be dim_passive().
+  //   mul_contacts: The Lagrange multiplier with respect to the contact  
+  //      constraints. The size must be dimf().
+  //   mul_constriants: The Lagrange multiplier with respect to the user-defined 
+  //      equality constraints. The size must be dim_constraints().
+  //   res_ha: The optimality residual with respect to the generalized 
+  //      acceleration. The size must be dimv().
+  //   res_hfext: The optimality residual with respect to the contact forces.
+  //      The size must be dimf().
+  //   res_contacts: The optimality residual with respect to the contact
+  //      constraints. The size must be dimf().
+  //   res_passive: The optimality residual with respect to the passive
+  //      constraints. The size must be dim_passive().
+  //   res_constraints: The optimality residual with respect to the passive
+  //      constraints. The size must be dim_constraints().
   inline void computeOptimalityResidualWithContacts(
       const double t, const double* q, const double* v, const double* a, 
-      const double* fext, const double* alpha, const double* nu, 
-      const double* mu, double* optimality_residual);
+      const double* fext, const double* mul_contacts, const double* mul_passive, 
+      const double* mul_constraints, double* res_ha, double* res_hfext, 
+      double* res_contacts, double* res_passive, double* res_constraints);
 
   Robot *robot_;
   CostFunctionInterface *cost_function_;
   ConstraintsInterface *constraints_;
   int dimq_, dimv_, dimf_, dim_passive_, dim_constraints_, dim_solution_;
-  double *u_, *beta_, *gamma_, *dRNEA_da_dot_beta_, *dRNEA_dfext_dot_beta_,
-         *dBaum_dq_dot_alpha_, *dBaum_dv_dot_alpha_, *dBaum_da_dot_alpha_;
+  double *u_, *hu_, *phiv_, *dRNEA_da_dot_hu_, *dRNEA_dfext_dot_hu_,
+         *dBaum_dq_dot_mul_, *dBaum_dv_dot_mul_, *dBaum_da_dot_mul_;
 };
 
 } // namespace robotcgmres

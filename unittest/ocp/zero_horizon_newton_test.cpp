@@ -24,20 +24,20 @@ class ZeroHorizonNewtonTest: public ::testing::Test {
 protected:
   virtual void SetUp() {
     srand((unsigned int) time(0));
-    kmax_ = 5;
+    kmax_ = 7;
     fixed_urdf_file_name_ = "../../../examples/iiwa14/iiwa14.urdf";
     pinocchio::urdf::buildModel(fixed_urdf_file_name_, fixed_model_);
     q_ = memorymanager::NewVector(fixed_model_.nq);
     v_ = memorymanager::NewVector(fixed_model_.nv);
     initial_solution_ = memorymanager::NewVector(fixed_model_.nv);
-    // Eigen::Map<Eigen::VectorXd>(q_, fixed_model_.nq) 
-    //     = pinocchio::randomConfiguration(fixed_model_, 
-    //                                      -Eigen::VectorXd::Ones(fixed_model_.nq), 
-    //                                      Eigen::VectorXd::Ones(fixed_model_.nq));
-    // Eigen::Map<Eigen::VectorXd>(v_, fixed_model_.nv) 
-    //     = Eigen::VectorXd::Random(fixed_model_.nv);
+    Eigen::Map<Eigen::VectorXd>(q_, fixed_model_.nq) 
+        = pinocchio::randomConfiguration(fixed_model_, 
+                                         -Eigen::VectorXd::Ones(fixed_model_.nq), 
+                                         Eigen::VectorXd::Ones(fixed_model_.nq));
+    Eigen::Map<Eigen::VectorXd>(v_, fixed_model_.nv) 
+        = Eigen::VectorXd::Random(fixed_model_.nv);
     Eigen::Map<Eigen::VectorXd>(initial_solution_, fixed_model_.nv) 
-        = Eigen::VectorXd::Ones(fixed_model_.nv);
+        = 0.01*Eigen::VectorXd::Ones(fixed_model_.nv);
     t_ = Eigen::VectorXd::Random(2)[1];
     baumgarte_alpha_ = Eigen::VectorXd::Random(2)[1];
     baumgarte_beta_ = Eigen::VectorXd::Random(2)[1];
@@ -96,9 +96,11 @@ TEST_F(ZeroHorizonNewtonTest, solveZeroHorizonOCP) {
     fdgmres.computeSolutionUpdate(newton, t_, q_, v_, solution_ref, 
                                   solution_update);
     newton.integrateSolution(solution_update, 1.0, solution_ref);
+    std::cout << "error[" << num_newton << "] = " << error << std::endl;
     error = newton.residualNorm(t_, q_, v_, solution_ref);
     ++num_newton;
   }
+  std::cout << "error[" << num_newton << "] = " << error << std::endl;
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(solution, zero_horizon_newton.dim_solution()).
               isApprox(Eigen::Map<Eigen::VectorXd>(solution_ref, newton.dim_solution())));
   memorymanager::DeleteVector(solution);
@@ -133,9 +135,11 @@ TEST_F(ZeroHorizonNewtonTest, solveZeroHorizonOCPWithSettingParameters) {
     fdgmres.computeSolutionUpdate(newton, t_, q_, v_, solution_ref, 
                                   solution_update);
     newton.integrateSolution(solution_update, 1.0, solution_ref);
+    std::cout << "error[" << num_newton << "] = " << error << std::endl;
     error = newton.residualNorm(t_, q_, v_, solution_ref);
     ++num_newton;
   }
+  std::cout << "error[" << num_newton << "] = " << error << std::endl;
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(solution, zero_horizon_newton.dim_solution()).
               isApprox(Eigen::Map<Eigen::VectorXd>(solution_ref, newton.dim_solution())));
   memorymanager::DeleteVector(solution);
