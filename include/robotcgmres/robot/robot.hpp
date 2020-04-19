@@ -169,14 +169,37 @@ public:
   //      method
   //    baumgarte_beta: The weight parameter of the Baumgrate's stabilization
   //      method
-  void addPointContact(const int contact_frame_id, const double baumgarte_alpha, 
+  void addPointContact(const unsigned int contact_frame_id, 
+                       const double baumgarte_alpha, 
                        const double baumgarte_beta);
 
   // Removes the point contact from the robot. If there is no contact that has 
   //    contact_frame_id, this function does not do anything.
   // Argments:
   //    contact_frame_id: The frame index of the contact. 
-  void removePointContact(const int contact_frame_id);
+  void removePointContact(const unsigned int contact_frame_id);
+
+  // Substitutes zero in the generalized torques tau corresponding to the 
+  // passive joints.
+  // Argments:
+  //   tau: The generalized torque for fully actuated system. The size is dimv.
+  void setPassiveTorques(double* tau) const;
+
+  // Calculates the violation of torques corresponding to the passive joints 
+  // under given generalized torques tau.
+  // Argments:
+  //   tau: The generalized torque for fully actuated system. The size is dimv.
+  //   violation: The residual of the constraints of the zero torques. The size
+  //      is dim_passive.
+  void passiveTorqueViolation(const double* tau, double* violation) const;
+
+  // Calculates the product of a vector and the derivative of the residual of 
+  // the constrains on the passive joints. In usually, the vector must be 
+  // the corresponding Lagrange multiplier.
+  // Argments:
+  //   vec: A vector whose size is dim_passive.
+  //   added_vec: A vector which vec is added. The size must be Robot::dimv().
+  void addVecToPassiveIndices(const double* vec, double* added_vec) const;
 
   // Returns the dimensiton of the generalized configuration.
   int dimq() const;
@@ -188,9 +211,9 @@ public:
   //    the contact forces.
   int dimf() const;
 
-  // Returns a reference of a vector of indices of generalized torques 
-  // corresponding to the passive joints.
-  const std::vector<std::string>& joint_types() const;
+  // Returns the dimensiton of the generalized torques corresponding to the 
+  // passive joints.
+  int dim_passive() const;
 
   // Prohibits copy constructor.
   Robot(const Robot&) = delete;
@@ -201,11 +224,11 @@ public:
 private:
   pinocchio::Model model_;
   pinocchio::Data data_;
+  std::vector<int> passive_torque_indices_;
   std::vector<PointContact> contacts_;
   pinocchio::container::aligned_vector<pinocchio::Force> fjoint_;
-  std::vector<std::string> joint_types_;
   Eigen::MatrixXd dtau_dfext_, dBaum_dq_, dBaum_dv_, dBaum_da_;
-  int dimq_, dimv_, dimf_;
+  int dimq_, dimv_, dimf_, dim_passive_;
 };
 
 } // namespace robotcgmres

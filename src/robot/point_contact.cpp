@@ -3,7 +3,7 @@
 
 namespace robotcgmres {
 
-PointContact::PointContact(const int contact_frame_id, 
+PointContact::PointContact(const unsigned int contact_frame_id, 
                            const double baumgarte_alpha, 
                            const double baumgarte_beta) 
   : contact_frame_id_(contact_frame_id),

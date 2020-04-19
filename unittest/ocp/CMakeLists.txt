@@ -1,10 +1,11 @@
 add_executable(
-    time_varying_smooth_horizon_test
-    time_varying_smooth_horizon_test.cpp
-    ${SRC_DIR}/ocp/time_varying_smooth_horizon.cpp
+    fdgmres_test
+    fdgmres_test.cpp
+    ${SRC_DIR}/common/memory_manager.cpp
+    ${SRC_DIR}/common/linear_algebra.cpp
 )
 target_include_directories(
-    time_varying_smooth_horizon_test
+    fdgmres_test
     PRIVATE
     ${GTEST_INCLUDE_PATH}
     ${GMOCK_INCLUDE_PATH}
@@ -12,16 +13,155 @@ target_include_directories(
     ${INCLUDE_DIR}
 )
 target_link_libraries(
-    time_varying_smooth_horizon_test
+    fdgmres_test
     PRIVATE
     GTest::GTest
     GTest::GMock
 )
 add_dependencies(
-    time_varying_smooth_horizon_test
+    fdgmres_test
     googletest
 )
 add_test(
-    NAME time_varying_smooth_horizon_test
-    COMMAND $<TARGET_FILE:time_varying_smooth_horizon_test>
+    NAME fdgmres_test
+    COMMAND $<TARGET_FILE:fdgmres_test>
+)
+
+add_library(
+    robot_model
+    SHARED
+    ${SRC_DIR}/robot/robot.cpp
+    ${SRC_DIR}/robot/point_contact.cpp
+    ${SRC_DIR}/cost_function/joint_space_cost.cpp
+)
+target_include_directories(
+    robot_model
+    PRIVATE
+    ${INCLUDE_DIR}
+    ${Boost_INCLUDE_DIR}
+    ${PINOCCHIO_INCLUDE_DIRS}
+)
+target_link_libraries(
+    robot_model
+    PRIVATE
+    pthread
+    ${Boost_LIBRARIES}
+    urdfdom_model
+)
+
+add_executable(
+    zero_horizon_ocp_test
+    zero_horizon_ocp_test.cpp
+    ${SRC_DIR}/ocp/zero_horizon_ocp.cpp
+    ${IIWA14_DIR}/cost_function_iiwa14.cpp
+    ${IIWA14_DIR}/constraints_iiwa14.cpp
+    ${SRC_DIR}/common/memory_manager.cpp
+)
+target_include_directories(
+    zero_horizon_ocp_test
+    PRIVATE
+    ${GTEST_INCLUDE_PATH}
+    ${GMOCK_INCLUDE_PATH}
+    ${GTEST_LIBRARY_PATH}
+    ${INCLUDE_DIR}
+    ${IIWA14_DIR}
+    ${Boost_INCLUDE_DIR}
+    ${PINOCCHIO_INCLUDE_DIRS}
+)
+target_link_libraries(
+    zero_horizon_ocp_test
+    PRIVATE
+    GTest::GTest
+    GTest::GMock
+    pthread
+    ${Boost_LIBRARIES}
+    urdfdom_model
+    robot_model
+)
+add_dependencies(
+    zero_horizon_ocp_test
+    googletest
+)
+add_test(
+    NAME zero_horizon_ocp_test
+    COMMAND $<TARGET_FILE:zero_horizon_ocp_test>
+)
+
+add_executable(
+    zero_horizon_newton_system_test
+    zero_horizon_newton_system_test.cpp
+    ${SRC_DIR}/ocp/zero_horizon_ocp.cpp
+    ${IIWA14_DIR}/cost_function_iiwa14.cpp
+    ${IIWA14_DIR}/constraints_iiwa14.cpp
+    ${SRC_DIR}/common/memory_manager.cpp
+    ${SRC_DIR}/common/linear_algebra.cpp
+)
+target_include_directories(
+    zero_horizon_newton_system_test
+    PRIVATE
+    ${GTEST_INCLUDE_PATH}
+    ${GMOCK_INCLUDE_PATH}
+    ${GTEST_LIBRARY_PATH}
+    ${INCLUDE_DIR}
+    ${IIWA14_DIR}
+    ${Boost_INCLUDE_DIR}
+    ${PINOCCHIO_INCLUDE_DIRS}
+)
+target_link_libraries(
+    zero_horizon_newton_system_test
+    PRIVATE
+    GTest::GTest
+    GTest::GMock
+    pthread
+    ${Boost_LIBRARIES}
+    urdfdom_model
+    robot_model
+)
+add_dependencies(
+    zero_horizon_newton_system_test
+    googletest
+)
+add_test(
+    NAME zero_horizon_newton_system_test
+    COMMAND $<TARGET_FILE:zero_horizon_newton_system_test>
+)
+
+add_executable(
+    zero_horizon_newton_test
+    zero_horizon_newton_test.cpp
+    ${SRC_DIR}/ocp/zero_horizon_newton.cpp
+    ${SRC_DIR}/ocp/zero_horizon_ocp.cpp
+    ${IIWA14_DIR}/cost_function_iiwa14.cpp
+    ${IIWA14_DIR}/constraints_iiwa14.cpp
+    ${SRC_DIR}/common/memory_manager.cpp
+    ${SRC_DIR}/common/linear_algebra.cpp
+)
+target_include_directories(
+    zero_horizon_newton_test
+    PRIVATE
+    ${GTEST_INCLUDE_PATH}
+    ${GMOCK_INCLUDE_PATH}
+    ${GTEST_LIBRARY_PATH}
+    ${INCLUDE_DIR}
+    ${IIWA14_DIR}
+    ${Boost_INCLUDE_DIR}
+    ${PINOCCHIO_INCLUDE_DIRS}
+)
+target_link_libraries(
+    zero_horizon_newton_test
+    PRIVATE
+    GTest::GTest
+    GTest::GMock
+    pthread
+    ${Boost_LIBRARIES}
+    urdfdom_model
+    robot_model
+)
+add_dependencies(
+    zero_horizon_newton_test
+    googletest
+)
+add_test(
+    NAME zero_horizon_newton_test
+    COMMAND $<TARGET_FILE:zero_horizon_newton_test>
 )

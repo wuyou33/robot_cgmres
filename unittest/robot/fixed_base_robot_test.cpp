@@ -61,6 +61,7 @@ TEST_F(FixedBaseRobotTest, dim) {
   EXPECT_EQ(robot.dimq(), dimq_);
   EXPECT_EQ(robot.dimv(), dimq_);
   EXPECT_EQ(robot.dimf(), 0);
+  EXPECT_EQ(robot.dim_passive(), 0);
 }
 
 
@@ -324,12 +325,27 @@ TEST_F(FixedBaseRobotTest, RNEADerivativesWithAccAndFextTransDotVecWithFext) {
 }
 
 
-TEST_F(FixedBaseRobotTest, joint_types) {
+TEST_F(FixedBaseRobotTest, passiveJoints) {
   Robot robot(urdf_file_name_);
-  EXPECT_EQ(robot.joint_types().size(), model_.njoints);
-  for (int i=0; i<model_.njoints; ++i) {
-    EXPECT_TRUE(robot.joint_types()[i]==model_.joints[i].shortname());
+  double* tau = memorymanager::NewVector(robot.dimv());
+  for (int i=0; i<robot.dimv(); ++i) {
+    tau[i] = 1.0;
   }
+  robot.setPassiveTorques(tau);
+  for (int i=0; i<robot.dimv(); ++i) {
+    EXPECT_DOUBLE_EQ(tau[i], 1.0);
+  }
+  double* residual = memorymanager::NewVector(robot.dimv());
+  robot.passiveTorqueViolation(tau, residual);
+  for (int i=0; i<robot.dimv(); ++i) {
+    EXPECT_DOUBLE_EQ(residual[i], 0.0);
+  }
+  robot.addVecToPassiveIndices(tau, residual);
+  for (int i=0; i<robot.dimv(); ++i) {
+    EXPECT_DOUBLE_EQ(residual[i], 0.0);
+  }
+  memorymanager::DeleteVector(residual);
+  memorymanager::DeleteVector(tau);
 }
 
 

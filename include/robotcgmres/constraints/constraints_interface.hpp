@@ -4,61 +4,77 @@
 #include "robot/robot.hpp"
 
 
+namespace robotcgmres {
+
 class ConstraintsInterface {
 public:
-  ConstraintsInterface(const Robot* robot_ptr);
-  virtual ~ConstraintsInterface();
+  ConstraintsInterface() {}
 
+  virtual ~ConstraintsInterface() {}
 
-  virtual void C(const double t, const double* q, const double* v, 
-                 const double* a, const double* u, double* C);
+  virtual void residual(const Robot* robot_ptr, const double t, const double* q, 
+                        const double* v, const double* a, const double* u, 
+                        const double* f, double* residual) = 0;
 
-  virtual void addCqDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u,  
-                           const double* vec, double* hq);
+  virtual void addCqDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* f, const double* vec, 
+                           double* hq) = 0;
 
-  virtual void addCvDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u,  
-                           const double* vec, double* hv);
+  virtual void addCvDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* f, const double* vec, 
+                           double* hv) = 0;
 
-  virtual void addCaDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u,  
-                           const double* vec, double* ha);
+  virtual void addCaDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* f, const double* vec, 
+                           double* ha) = 0;
 
-  virtual void addCuDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u,  
-                           const double* vec, double* hu);
+  virtual void addCuDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* f, const double* vec, 
+                           double* hu) = 0;
 
+  virtual void addCfDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* f, const double* vec, 
+                           double* hf) = 0;
 
-  virtual void C(const double t, const double* q, const double* v, 
-                 const double* a, const double* u, const double* f, double* C);
+  virtual void residual(const Robot* robot_ptr, const double t, const double* q, 
+                        const double* v, const double* a, const double* u, 
+                        double* residual) = 0;
 
-  virtual void addCqDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u, const double* f, 
-                           const double* vec, double* hq);
+  virtual void addCqDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* vec, double* hq) = 0;
 
-  virtual void addCvDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u, const double* f, 
-                           const double* vec, double* hv);
+  virtual void addCvDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* vec, double* hv) = 0;
 
-  virtual void addCaDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u, const double* f, 
-                           const double* vec, double* ha);
+  virtual void addCaDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* vec, double* ha) = 0;
 
-  virtual void addCuDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u, const double* f, 
-                           const double* vec, double* hu);
+  virtual void addCuDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* vec, double* hu) = 0;
 
-  virtual void addCfDotVec(const double t, const double* q, const double* v, 
-                           const double* a, const double* u, const double* f, 
-                           const double* vec, double* hf);
+  virtual void addCfDotVec(const Robot* robot_ptr, const double t, 
+                           const double* q, const double* v, const double* a, 
+                           const double* u, const double* vec, double* hf) = 0;
 
+  virtual int dim_constraints() const = 0;
 
-  virtual int dim_constraints() const;
+  // Prohibits copy constructor.
+  ConstraintsInterface(const ConstraintsInterface&) = delete;
 
-private:
+  // Prohibits copy operator.
+  ConstraintsInterface& operator=(const ConstraintsInterface&) = delete;
 
 };
 
+} // namespace robotcgmres
 
 #endif // ROBOTCGMRES_CONSTRAINTS_INTERFACE_HPP_

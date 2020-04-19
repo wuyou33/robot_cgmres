@@ -20,7 +20,7 @@ public:
   //   dim_linear_problem: The dimension of the solution of the Newton system's 
   //      equation.
   //   kmax: The maximum number of GMRES iteration.
-  FDGMRES(const int dim_linear_problem, const int kmax)
+  FDGMRES(const unsigned int dim_linear_problem, const unsigned int kmax)
     : dim_linear_problem_(dim_linear_problem), 
       kmax_(kmax), 
       hessenberg_mat_(memorymanager::NewMatrix(kmax+1, kmax+1)), 
@@ -63,9 +63,9 @@ public:
     for (int i=0; i<kmax_+1; ++i) g_[i] = 0;
     // Generates the initial basis of the Krylov subspace.
     newton_type_system.computeInitialResidual(t, q, v, solution, 
-                                               solution_update, r_);
+                                              solution_update, r_);
     g_[0] = std::sqrt(linearalgebra::SquaredNorm(dim_linear_problem_, r_));
-    // basis_mat_[0] = b_ / g_[0]
+    // basis_mat_[0] = r_ / g_[0]
     for (int i=0; i<dim_linear_problem_; ++i) {
       basis_mat_[0][i] = r_[i] / g_[0];
     }
@@ -122,7 +122,7 @@ public:
       for (int j=0; j<k; ++j) { 
         tmp += basis_mat_[j][i] * givens_c_[j];
       }
-      solution[i] += tmp;
+      solution_update[i] += tmp;
     }
   }
 

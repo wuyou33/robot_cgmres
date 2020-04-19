@@ -24,8 +24,8 @@ public:
   //      method
   //    baumgarte_beta: The weight parameter of the Baumgrate's stabilization
   //      method
-  PointContact(const int contact_frame_id, const double baumgarte_alpha, 
-               const double baumgarte_beta);
+  PointContact(const unsigned int contact_frame_id, 
+               const double baumgarte_alpha, const double baumgarte_beta);
  
   // Destructor. 
   ~PointContact();

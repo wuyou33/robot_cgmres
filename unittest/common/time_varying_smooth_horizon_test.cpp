@@ -2,7 +2,7 @@
 #include <time.h>
 #include <Eigen/Core>
 
-#include "ocp/time_varying_smooth_horizon.hpp"
+#include "common/time_varying_smooth_horizon.hpp"
 
 
 namespace robotcgmres {

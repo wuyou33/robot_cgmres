@@ -29,6 +29,7 @@ add_definitions(
 # set tested directories
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include/robotcgmres)
+set(IIWA14_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples/iiwa14)
 
 # coverage options
 add_library(coverage_config INTERFACE)

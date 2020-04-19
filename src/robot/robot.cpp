@@ -7,8 +7,8 @@ Robot::Robot(const std::string& urdf_file_name)
   : model_(),
     data_(model_),
     contacts_(),
+    passive_torque_indices_(),
     fjoint_(),
-    joint_types_(),
     dtau_dfext_(),
     dBaum_dq_(),
     dBaum_dv_(),
@@ -23,10 +23,23 @@ Robot::Robot(const std::string& urdf_file_name)
                  model_.joints.size(), pinocchio::Force::Zero());
   dimq_ = model_.nq;
   dimv_ = model_.nv;
-  // Set joint types.
+  // Set passive toqeus.
+  int total_dim_torque = -1; // Note that joint 0 is always universe.
   for (const auto& joint : model_.joints) {
-    joint_types_.push_back(joint.shortname());
+    if (joint.shortname() == "JointModelFreeFlyer") {
+      passive_torque_indices_.push_back(total_dim_torque);
+      passive_torque_indices_.push_back(total_dim_torque+1);
+      passive_torque_indices_.push_back(total_dim_torque+2);
+      passive_torque_indices_.push_back(total_dim_torque+3);
+      passive_torque_indices_.push_back(total_dim_torque+4);
+      passive_torque_indices_.push_back(total_dim_torque+5);
+      total_dim_torque += 6;
+    }
+    else {
+      total_dim_torque += 1;
+    }
   }
+  dim_passive_ = passive_torque_indices_.size();
 }
 
 Robot::~Robot() {
@@ -170,7 +183,7 @@ void Robot::RNEADerivativesTransDotVec(const double* q, const double* vec,
                                                                        dimv_);
 }
 
-void Robot::addPointContact(const int contact_frame_id, 
+void Robot::addPointContact(const unsigned int contact_frame_id, 
                             const double baumgarte_alpha, 
                             const double baumgarte_beta) {
   auto find
@@ -189,7 +202,7 @@ void Robot::addPointContact(const int contact_frame_id,
   dBaum_da_.resize(dimf_, dimv_);
 }
 
-void Robot::removePointContact(const int contact_frame_id) {
+void Robot::removePointContact(const unsigned int contact_frame_id) {
   auto find
       = std::find_if(contacts_.begin(), contacts_.end(), 
                      [contact_frame_id](PointContact& contact)
@@ -205,6 +218,24 @@ void Robot::removePointContact(const int contact_frame_id) {
   dBaum_da_.resize(dimf_, dimv_);
 }
 
+void Robot::setPassiveTorques(double* tau) const {
+  for (int i=0; i<passive_torque_indices_.size(); ++i) {
+    tau[i] = 0.0;
+  }
+}
+
+void Robot::passiveTorqueViolation(const double* tau, double* violation) const {
+  for (int i=0; i<passive_torque_indices_.size(); ++i) {
+    violation[i] = tau[passive_torque_indices_[i]];
+  }
+}
+
+void Robot::addVecToPassiveIndices(const double* vec, double* added_vec) const {
+  for (int i=0; i<passive_torque_indices_.size(); ++i) {
+    added_vec[passive_torque_indices_[i]] += vec[i];
+  }
+}
+
 int Robot::dimq() const {
   return dimq_;
 }
@@ -217,8 +248,8 @@ int Robot::dimf() const {
   return dimf_;
 }
 
-const std::vector<std::string>& Robot::joint_types() const {
-  return joint_types_;
+int Robot::dim_passive() const {
+  return dim_passive_;
 }
 
 } // namespace robotcgmres
