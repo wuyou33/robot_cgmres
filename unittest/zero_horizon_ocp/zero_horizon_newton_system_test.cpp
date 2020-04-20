@@ -7,13 +7,12 @@
 #include "Eigen/Core"
 
 #include "robot/robot.hpp"
-#include "ocp/zero_horizon_ocp.hpp"
-#include "ocp/newton_system_for_ocp.hpp"
-#include "cost_function_iiwa14.hpp"
-#include "constraints_iiwa14.hpp"
+#include "solver/newton_system_for_ocp.hpp"
+#include "zero_horizon_ocp/zero_horizon_ocp.hpp"
 #include "common/memory_manager.hpp"
 #include "common/linear_algebra.hpp"
 
+#include "iiwa14/cost_function_iiwa14.hpp"
 
 
 namespace robotcgmres {
@@ -61,10 +60,9 @@ protected:
 TEST_F(ZeroHorizonNewtonSystemTest, dim_solution) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   NewtonSystemForOCP<ZeroHorizonOCP> newton(&fixed_robot, &cost_function, 
-                                            &constraints, finite_difference_);
+                                            finite_difference_);
   EXPECT_EQ(newton.dimq(), ocp.dimq());
   EXPECT_EQ(newton.dimv(), ocp.dimv());
   EXPECT_EQ(newton.dim_solution(), ocp.dim_solution());
@@ -74,10 +72,9 @@ TEST_F(ZeroHorizonNewtonSystemTest, dim_solution) {
 TEST_F(ZeroHorizonNewtonSystemTest, computeInitialResidual) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   NewtonSystemForOCP<ZeroHorizonOCP> newton(&fixed_robot, &cost_function, 
-                                            &constraints, finite_difference_);
+                                            finite_difference_);
   const int dim_solution = ocp.dim_solution();
   double *solution = memorymanager::NewVector(dim_solution);
   double *direction = memorymanager::NewVector(dim_solution);
@@ -113,10 +110,9 @@ TEST_F(ZeroHorizonNewtonSystemTest, computeInitialResidual) {
 TEST_F(ZeroHorizonNewtonSystemTest, computeAx) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   NewtonSystemForOCP<ZeroHorizonOCP> newton(&fixed_robot, &cost_function, 
-                                            &constraints, finite_difference_);
+                                            finite_difference_);
   const int dim_solution = ocp.dim_solution();
   double *solution = memorymanager::NewVector(dim_solution);
   double *direction = memorymanager::NewVector(dim_solution);
@@ -152,10 +148,9 @@ TEST_F(ZeroHorizonNewtonSystemTest, computeAx) {
 TEST_F(ZeroHorizonNewtonSystemTest, residualNorm) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   NewtonSystemForOCP<ZeroHorizonOCP> newton(&fixed_robot, &cost_function, 
-                                            &constraints, finite_difference_);
+                                            finite_difference_);
   const int dim_solution = ocp.dim_solution();
   double *solution = memorymanager::NewVector(dim_solution);
   Eigen::Map<Eigen::VectorXd>(solution, dim_solution) = Eigen::VectorXd::Random(dim_solution);
@@ -173,10 +168,9 @@ TEST_F(ZeroHorizonNewtonSystemTest, residualNorm) {
 TEST_F(ZeroHorizonNewtonSystemTest, integrateSolution) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   NewtonSystemForOCP<ZeroHorizonOCP> newton(&fixed_robot, &cost_function, 
-                                            &constraints, finite_difference_);
+                                            finite_difference_);
   const int dim_solution = ocp.dim_solution();
   double *solution = memorymanager::NewVector(dim_solution);
   double *solution_ref = memorymanager::NewVector(dim_solution);
@@ -198,10 +192,9 @@ TEST_F(ZeroHorizonNewtonSystemTest, integrateSolution) {
 TEST_F(ZeroHorizonNewtonSystemTest, getControlInput) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   NewtonSystemForOCP<ZeroHorizonOCP> newton(&fixed_robot, &cost_function, 
-                                            &constraints, finite_difference_);
+                                            finite_difference_);
   const int dim_solution = ocp.dim_solution();
   double *solution = memorymanager::NewVector(dim_solution);
   double *control_input = memorymanager::NewVector(ocp.dimv());

@@ -2,11 +2,10 @@
 #define ROBOTCGMRES_ZERO_HORIZON_NEWTON_HPP_
 
 #include "robot/robot.hpp"
-#include "ocp/zero_horizon_ocp.hpp"
-#include "ocp/newton_system_for_ocp.hpp"
-#include "ocp/fdgmres.hpp"
+#include "zero_horizon_ocp/zero_horizon_ocp.hpp"
+#include "solver/newton_system_for_ocp.hpp"
+#include "solver/fdgmres.hpp"
 #include "cost_function/cost_function_interface.hpp"
-#include "constraints/constraints_interface.hpp"
 #include "common/memory_manager.hpp"
 
 
@@ -22,7 +21,6 @@ public:
   //   kmax: The maximum number of GMRES iteration.
   ZeroHorizonNewton(const Robot* robot_ptr, 
                     const CostFunctionInterface* cost_function,
-                    const ConstraintsInterface* constraints,
                     const double finite_difference_increment, 
                     const unsigned int kmax);
 
@@ -76,7 +74,6 @@ private:
 };
 
 } // namespace robotcgmres
-
 
 
 #endif // ROBOTCGMRES_ZERO_HORIZON_NEWTON_HPP_

@@ -7,12 +7,11 @@
 #include "Eigen/Core"
 
 #include "robot/robot.hpp"
-#include "ocp/zero_horizon_ocp.hpp"
-#include "cost_function_iiwa14.hpp"
-#include "constraints_iiwa14.hpp"
+#include "zero_horizon_ocp/zero_horizon_ocp.hpp"
 #include "common/memory_manager.hpp"
 #include "common/linear_algebra.hpp"
 
+#include "iiwa14/cost_function_iiwa14.hpp"
 
 
 namespace robotcgmres {
@@ -73,14 +72,13 @@ protected:
 TEST_F(ZeroHorizonOCPTest, dims) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp_(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp_(&fixed_robot, &cost_function);
   EXPECT_EQ(ocp_.dimq(), fixed_robot.dimq());
   EXPECT_EQ(ocp_.dimv(), fixed_robot.dimv());
   EXPECT_EQ(ocp_.dimf(), fixed_robot.dimf());
   EXPECT_EQ(ocp_.dim_passive(), fixed_robot.dim_passive());
-  EXPECT_EQ(ocp_.dim_constraints(), constraints.dim_constraints());
-  const int dim_solution = fixed_robot.dimv()+2*fixed_robot.dimf()+fixed_robot.dim_passive()+constraints.dim_constraints();
+  const int dim_solution 
+      = fixed_robot.dimv()+2*fixed_robot.dimf()+fixed_robot.dim_passive();
   EXPECT_EQ(ocp_.dim_solution(), dim_solution);
 }
 
@@ -88,11 +86,10 @@ TEST_F(ZeroHorizonOCPTest, dims) {
 TEST_F(ZeroHorizonOCPTest, computeOptimalityResidualWithoutFext) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   const int dim_solution = ocp.dim_solution();
   EXPECT_EQ(ocp.dimf(), 0);
-  EXPECT_EQ(dim_solution, ocp.dimv()+ocp.dim_passive()+ocp.dim_constraints());
+  EXPECT_EQ(dim_solution, ocp.dimv()+ocp.dim_passive());
   double *solution = memorymanager::NewVector(dim_solution);
   Eigen::Map<Eigen::VectorXd>(solution, dim_solution) = Eigen::VectorXd::Random(dim_solution);
   double* residual = memorymanager::NewVector(ocp.dim_solution());
@@ -101,33 +98,25 @@ TEST_F(ZeroHorizonOCPTest, computeOptimalityResidualWithoutFext) {
   double* residual_ref = memorymanager::NewVector(ocp.dim_solution());
   double *a = solution;
   double *mul_passive = &(solution[fixed_robot.dimv()]);
-  double *mul_constraints = &(solution[fixed_robot.dimv()+fixed_robot.dim_passive()]);
   double *res_ha = residual_ref;
   double *res_passive = &(residual_ref[fixed_robot.dimv()]);
-  double *res_constraints = &(residual_ref[fixed_robot.dimv()+fixed_robot.dim_passive()]);
-
-  // Compute the generalized torque for fully actuated robot u_
+  // Computes the generalized torque for fully actuated robot, u_.
   fixed_robot.RNEA(q_, v_, a, u_);
-  // Compute hu and store it in beta_
+  // Computes hu.
   cost_function.lu(&fixed_robot, t_, q_, v_, a, u_, hu_);
   fixed_robot.addVecToPassiveIndices(mul_passive, hu_);
-  constraints.addCuDotVec(&fixed_robot, t_, q_, v_, a, u_, mul_constraints, hu_);
-  // Residuals with respect to the generalized acceleration
+  // Computes residuals with respect to the generalized acceleration.
   fixed_robot.RNEADerivativesTransDotVec(q_, hu_, dRNEA_da_dot_hu_);
   cost_function.la(&fixed_robot, t_, q_, v_, a, u_, res_ha);
-  constraints.addCaDotVec(&fixed_robot, t_, q_, v_, a, u_, mul_constraints, res_ha);
   cost_function.phiv(&fixed_robot, t_, q_, v_, phiv_);
   for (int i=0; i<fixed_robot.dimv(); ++i) {
     res_ha[i] += phiv_[i] + dRNEA_da_dot_hu_[i];
   }
   // Compute the residual of the passive joints constraints.
   fixed_robot.passiveTorqueViolation(u_, res_passive);
-  // Compute the residual of the equality constraints.
-  constraints.residual(&fixed_robot, t_, q_, v_, a, u_, res_constraints);
 
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(residual, ocp.dim_solution()).
               isApprox(Eigen::Map<Eigen::VectorXd>(residual_ref, ocp.dim_solution())));
-
   memorymanager::DeleteVector(solution);
   memorymanager::DeleteVector(residual_ref);
   memorymanager::DeleteVector(residual);
@@ -138,12 +127,10 @@ TEST_F(ZeroHorizonOCPTest, computeOptimalityResidualWithFext) {
   Robot fixed_robot(fixed_urdf_file_name_);
   fixed_robot.addPointContact(18, baumgarte_alpha_, baumgarte_beta_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   const int dim_solution = ocp.dim_solution();
   EXPECT_EQ(ocp.dimf(), 3);
-  EXPECT_EQ(dim_solution, 
-            ocp.dimv()+2*ocp.dimf()+ocp.dim_passive()+ocp.dim_constraints());
+  EXPECT_EQ(dim_solution, ocp.dimv()+2*ocp.dimf()+ocp.dim_passive());
   double *solution = memorymanager::NewVector(dim_solution);
   Eigen::Map<Eigen::VectorXd>(solution, dim_solution) = Eigen::VectorXd::Random(dim_solution);
   double* residual = memorymanager::NewVector(ocp.dim_solution());
@@ -152,29 +139,25 @@ TEST_F(ZeroHorizonOCPTest, computeOptimalityResidualWithFext) {
   double* residual_ref = memorymanager::NewVector(ocp.dim_solution());
   double *a = solution;
   double *fext = &(solution[fixed_robot.dimv()]);
-  double *mul_contacts = &(solution[fixed_robot.dimv()+fixed_robot.dimf()]);
-  double *mul_passive = &(solution[fixed_robot.dimv()+2*fixed_robot.dimf()]);
-  double *mul_constraints = &(solution[fixed_robot.dimv()+2*fixed_robot.dimf()+fixed_robot.dim_passive()]);
+  double *mul_passive = &(solution[fixed_robot.dimv()+fixed_robot.dimf()]);
+  double *mul_contacts = &(solution[fixed_robot.dimv()+fixed_robot.dimf()+fixed_robot.dim_passive()]);
   double *res_ha = residual_ref;
   double *res_hfext = &(residual_ref[fixed_robot.dimv()]);
   double *res_contacts = &(residual_ref[fixed_robot.dimv()+fixed_robot.dimf()]);
-  double *res_passive = &(residual_ref[fixed_robot.dimv()+2*fixed_robot.dimf()]);
-  double *res_constraints = &(residual_ref[fixed_robot.dimv()+2*fixed_robot.dimf()+fixed_robot.dim_passive()]);
+  double *res_passive = &(residual_ref[fixed_robot.dimv()+fixed_robot.dimf()+fixed_robot.dim_passive()]);
 
-  // Compute the generalized torque u_
+  // Computes the generalized torque for fully actuated robot, u_.
   fixed_robot.setFext(fext);
   fixed_robot.RNEA(q_, v_, a, fext, u_);
-  // Compute hu and store in beta_
+  // Computes hu.
   cost_function.lu(&fixed_robot, t_, q_, v_, a, u_, fext, hu_);
-  constraints.addCuDotVec(&fixed_robot, t_, q_, v_, a, u_, fext, mul_constraints, hu_);
   fixed_robot.addVecToPassiveIndices(mul_passive, hu_);
-  // Residuals of acceleration, fext, and contact constraints.
+  // Computes residuals with respect to the generalized acceleration and the 
+  // contact forces
   fixed_robot.updateKinematics(q_, v_, a);
   fixed_robot.RNEADerivativesTransDotVec(q_, hu_, dRNEA_da_dot_hu_, 
                                          dRNEA_dfext_dot_hu_);
   cost_function.la(&fixed_robot, t_, q_, v_, a, u_, fext, res_ha);
-  constraints.addCaDotVec(&fixed_robot, t_, q_, v_, a, u_, fext, mul_constraints, 
-                            res_ha);
   fixed_robot.baumgarteDerivativesDotVec(mul_contacts, dBaum_dq_dot_mul_, 
                                          dBaum_dv_dot_mul_, dBaum_da_dot_mul_);
   cost_function.phiv(&fixed_robot, t_, q_, v_, phiv_);
@@ -182,17 +165,13 @@ TEST_F(ZeroHorizonOCPTest, computeOptimalityResidualWithFext) {
     res_ha[i] += phiv_[i] + dRNEA_da_dot_hu_[i] + dBaum_da_dot_mul_[i];
   }
   cost_function.lf(&fixed_robot, t_, q_, v_, a, u_, fext, res_hfext);
-  constraints.addCfDotVec(&fixed_robot, t_, q_, v_, a, u_, fext, mul_constraints, 
-                            res_hfext);
   for (int i=0; i<fixed_robot.dimf(); ++i) {
     res_hfext[i] += dRNEA_dfext_dot_hu_[i];
   }
-  // Compute the residual of the contact.
-  fixed_robot.baumgarteResidual(res_contacts);
-  // Compute the residual of the passive joints constraints.
+  // Compute the residual with respect to the passive joints constraints.
   fixed_robot.passiveTorqueViolation(u_, res_passive);
-  // Compute the residual of the equality constraints.
-  constraints.residual(&fixed_robot, t_, q_, v_, a, u_, fext, res_constraints);
+  // Compute the residual with respect to the contact constraints.
+  fixed_robot.baumgarteResidual(res_contacts);
 
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(residual, ocp.dim_solution()).
               isApprox(Eigen::Map<Eigen::VectorXd>(residual_ref, ocp.dim_solution())));
@@ -205,11 +184,8 @@ TEST_F(ZeroHorizonOCPTest, computeOptimalityResidualWithFext) {
 TEST_F(ZeroHorizonOCPTest, integrateSolution) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   const int dim_solution = ocp.dim_solution();
-  EXPECT_EQ(ocp.dimf(), 0);
-  EXPECT_EQ(dim_solution, ocp.dimv()+ocp.dim_passive()+ocp.dim_constraints());
   double *solution = memorymanager::NewVector(dim_solution);
   double *solution_ref = memorymanager::NewVector(dim_solution);
   double *solution_update = memorymanager::NewVector(dim_solution);
@@ -217,28 +193,37 @@ TEST_F(ZeroHorizonOCPTest, integrateSolution) {
   Eigen::Map<Eigen::VectorXd>(solution, dim_solution) = Eigen::VectorXd::Random(dim_solution);
   Eigen::Map<Eigen::VectorXd>(solution_ref, dim_solution) = Eigen::Map<Eigen::VectorXd>(solution, dim_solution);
   Eigen::Map<Eigen::VectorXd>(solution_update, dim_solution) = Eigen::VectorXd::Random(dim_solution);
-
   ocp.integrateSolution(solution_update, integration_length, solution);
   for (int i=0; i<ocp.dim_solution(); ++i) {
     solution_ref[i] += integration_length * solution_update[i];
   }
-
   EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(solution, ocp.dim_solution()).
               isApprox(Eigen::Map<Eigen::VectorXd>(solution_ref, ocp.dim_solution())));
+  double *integrated_solution = memorymanager::NewVector(dim_solution);
+  double *integrated_solution_ref = memorymanager::NewVector(dim_solution);
+  ocp.integrateSolution(solution, solution_update, integration_length, 
+                        integrated_solution);
+  for (int i=0; i<ocp.dim_solution(); ++i) {
+    integrated_solution_ref[i] = solution[i] + integration_length * solution_update[i];
+  }
+  EXPECT_TRUE(Eigen::Map<Eigen::VectorXd>(integrated_solution, 
+                                          ocp.dim_solution()).
+              isApprox(Eigen::Map<Eigen::VectorXd>(integrated_solution_ref, 
+                                                   ocp.dim_solution())));
   memorymanager::DeleteVector(solution);
   memorymanager::DeleteVector(solution_ref);
   memorymanager::DeleteVector(solution_update);
+  memorymanager::DeleteVector(integrated_solution);
+  memorymanager::DeleteVector(integrated_solution_ref);
 }
 
 
 TEST_F(ZeroHorizonOCPTest, getControlInputWithoutFext) {
   Robot fixed_robot(fixed_urdf_file_name_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
-  const int dim_solution = ocp.dim_solution();
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   EXPECT_EQ(ocp.dimf(), 0);
-  EXPECT_EQ(dim_solution, ocp.dimv()+ocp.dim_passive()+ocp.dim_constraints());
+  const int dim_solution = ocp.dim_solution();
   double *solution = memorymanager::NewVector(dim_solution);
   Eigen::Map<Eigen::VectorXd>(solution, dim_solution) = Eigen::VectorXd::Random(dim_solution);
   double *control_input = memorymanager::NewVector(ocp.dimv());
@@ -258,10 +243,9 @@ TEST_F(ZeroHorizonOCPTest, getControlInputWithFext) {
   Robot fixed_robot(fixed_urdf_file_name_);
   fixed_robot.addPointContact(18, baumgarte_alpha_, baumgarte_beta_);
   CostFunction_iiwa14 cost_function(&fixed_robot);
-  Constraints_iiwa14 constraints(&fixed_robot);
-  ZeroHorizonOCP ocp(&fixed_robot, &cost_function, &constraints);
-  const int dim_solution = ocp.dim_solution();
+  ZeroHorizonOCP ocp(&fixed_robot, &cost_function);
   EXPECT_EQ(ocp.dimf(), 3);
+  const int dim_solution = ocp.dim_solution();
   double *solution = memorymanager::NewVector(dim_solution);
   Eigen::Map<Eigen::VectorXd>(solution, dim_solution) = Eigen::VectorXd::Random(dim_solution);
   double *control_input = memorymanager::NewVector(ocp.dimv());

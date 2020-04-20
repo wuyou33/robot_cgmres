@@ -1,19 +1,21 @@
-#include "ocp/zero_horizon_newton.hpp"
+#include "zero_horizon_ocp/zero_horizon_newton.hpp"
 
 
 namespace robotcgmres {
 
 ZeroHorizonNewton::ZeroHorizonNewton(const Robot* robot_ptr, 
                                      const CostFunctionInterface* cost_function,
-                                     const ConstraintsInterface* constraints,
                                      const double finite_difference_increment, 
                                      const unsigned int kmax)
-  : newton_(robot_ptr, cost_function, constraints, finite_difference_increment),
+  : newton_(robot_ptr, cost_function, finite_difference_increment),
     fdgmres_(newton_.dim_solution(), kmax),
     solution_update_(memorymanager::NewVector(newton_.dim_solution())),
     initial_guess_solution_(memorymanager::NewVector(newton_.dim_solution())),
-    criteria_newton_termination_(1e-08),
+    criteria_newton_termination_(1e-03),
     max_newton_iteration_(50) {
+  for (int i=0; i<newton_.dim_solution(); ++i) {
+    initial_guess_solution_[i] = 1.0;
+  }
 }
 
 ZeroHorizonNewton::~ZeroHorizonNewton() {
@@ -39,6 +41,9 @@ void ZeroHorizonNewton::solveZeroHorizonOCP(const double t, const double* q,
                                             const double* v, double* solution) {
   for (int i=0; i<newton_.dim_solution(); ++i) {
     solution[i] = initial_guess_solution_[i];
+  }
+  for (int i=0; i<newton_.dim_solution(); ++i) {
+    solution_update_[i] = initial_guess_solution_[i];
   }
   double error = newton_.residualNorm(t, q, v, solution);
   int num_newton = 0;

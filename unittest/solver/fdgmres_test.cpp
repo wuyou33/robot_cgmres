@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <limits>
 
-#include "ocp/fdgmres.hpp"
+#include "solver/fdgmres.hpp"
 #include "common/memory_manager.hpp"
 #include "common/linear_algebra.hpp"
 

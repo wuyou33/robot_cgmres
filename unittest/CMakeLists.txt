@@ -29,7 +29,7 @@ add_definitions(
 # set tested directories
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include/robotcgmres)
-set(IIWA14_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples/iiwa14)
+set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples)
 
 # coverage options
 add_library(coverage_config INTERFACE)
@@ -48,4 +48,5 @@ endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/common)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/robot)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/ocp)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/solver)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/zero_horizon_ocp)

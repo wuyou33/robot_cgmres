@@ -5,7 +5,6 @@
 
 #include "robot/robot.hpp"
 #include "cost_function/cost_function_interface.hpp"
-#include "constraints/constraints_interface.hpp"
 #include "common/memory_manager.hpp"
 #include "common/linear_algebra.hpp"
 
@@ -23,9 +22,8 @@ public:
   //      approximation.
   NewtonSystemForOCP(const Robot* robot_ptr, 
                      const CostFunctionInterface* cost_function,
-                     const ConstraintsInterface* constraints,
                      const double finite_difference_increment)
-    : ocp_(robot_ptr, cost_function, constraints),
+    : ocp_(robot_ptr, cost_function),
       finite_difference_increment_(std::abs(finite_difference_increment)),
       incremented_solution_(memorymanager::NewVector(ocp_.dim_solution())), 
       optimality_residual_(memorymanager::NewVector(ocp_.dim_solution())), 
@@ -53,10 +51,8 @@ public:
                               const double* solution, 
                               const double* initial_direction, 
                               double* initial_residual) {
-    for (int i=0; i<ocp_.dim_solution(); ++i) {
-      incremented_solution_[i] = solution[i] 
-          + finite_difference_increment_ * initial_direction[i];
-    }
+    ocp_.integrateSolution(solution, initial_direction, 
+                           finite_difference_increment_, incremented_solution_);
     ocp_.computeOptimalityResidual(t, q, v, solution, optimality_residual_);
     ocp_.computeOptimalityResidual(t, q, v, incremented_solution_, 
                                    incremented_optimality_residual_);
@@ -78,10 +74,8 @@ public:
   //   Ax: Ax of the linear problem. The size must be dim_solution().
   void computeAx(const double t, const double* q, const double* v, 
                  const double* solution, const double* direction, double* Ax) {
-    for (int i=0; i<ocp_.dim_solution(); ++i) { 
-      incremented_solution_[i] = solution[i] 
-          + finite_difference_increment_ * direction[i];
-    }
+    ocp_.integrateSolution(solution, direction, finite_difference_increment_, 
+                           incremented_solution_);
     ocp_.computeOptimalityResidual(t, q, v, incremented_solution_, 
                                    incremented_optimality_residual_);
     for (int i=0; i<ocp_.dim_solution(); ++i) {
